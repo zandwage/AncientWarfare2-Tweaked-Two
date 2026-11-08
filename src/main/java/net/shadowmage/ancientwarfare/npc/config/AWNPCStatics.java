@@ -38,12 +38,15 @@ public class AWNPCStatics extends ModConfiguration {
 	public static boolean vanillaEquipmentDropRate = true;
 	public static double npcLevelDamageMultiplier = 0.05;//damage bonus per npc level.  @ level 10 they do 2x the damage as at lvl 0
 	public static boolean npcKeepEquipment = false;
+	public static boolean dialogueScreen = true;
 
 
 	/* ********************************************CLIENT SETTINGS************************************************ */
 	public static boolean loadDefaultSkinPack = true;
 
 	public static Property renderAI, renderWorkPoints, renderFriendlyNames, renderHostileNames, renderFriendlyHealth, renderHostileHealth, renderTeamColors;
+	// Cinematic dialogue screen (all client side). Kept as Property objects so they can be edited from the in-game config GUI.
+	public static Property dialogueBarHeight, dialogueBarSpeed, dialogueBarColor, dialogueHideHud, dialogueFaceNpc, dialogueTypewriterSpeed;
 
 	/* ********************************************FOOD SETTINGS************************************************ */
 	private Configuration foodConfig;
@@ -106,6 +109,8 @@ public class AWNPCStatics extends ModConfiguration {
 		
 		townUpdateFreq = config.get(serverOptions, "town_hall_ticks", townUpdateFreq, "Default=" + townUpdateFreq + "\n" + "How many game ticks should pass between Town Hall updates." + "This affect how an NPC can change its selected Town Hall by moving to different places.\n" + "Lower values will make an NPC change its Town Hall faster, but is more costly for a server.\n").getInt();
 
+		dialogueScreen = config.get(serverOptions, "npc_dialogue_screen", dialogueScreen, "Cinematic Dialogue Screen\nDefault=" + dialogueScreen + "\n" + "If true, right-clicking a faction NPC opens a Skyrim-style dialogue screen with selectable options (configured in config/ancientwarfare/npc_dialogue_options.json).\n" + "If false, NPCs just say one line in chat like before.\nOnly takes effect if npc_dialogue is also enabled in the core tweaks.").getBoolean();
+
 		loadDefaultSkinPack = config.get(clientOptions, "load_default_skin_pack", loadDefaultSkinPack, "Load Default Skin Pack\nDefault=true\n" + "If true, default skin pack will be loaded.\n" + "If false, default skin pack will NOT be loaded -- you will need to supply your own\n" + "skin packs or all npcs will use the default skin.").getBoolean();
 
 		archerRange = config.get(serverOptions, "archer_attack_range", archerRange, "Archer attack range\nDefault=" + archerRange + "\n" + "Attack range of all archers, except mounted archers who are half of this value.").getDouble();
@@ -118,6 +123,13 @@ public class AWNPCStatics extends ModConfiguration {
 		renderHostileHealth = config.get(clientOptions, "render_hostile_health", true);
 		renderTeamColors = config.get(clientOptions, "render_team_colors", true);
 
+		dialogueBarHeight = config.get(clientOptions, "dialogue_bar_height_percent", 12.0D, "Cinematic Bar Height\nDefault=12.0\n" + "How tall each cinematic black bar (top and bottom) is during NPC dialogue, as a percentage of the screen height.\n" + "0 = no bars, 50 = the bars meet in the middle.", 0.0D, 50.0D);
+		dialogueBarSpeed = config.get(clientOptions, "dialogue_bar_animation_speed", 1.0D, "Cinematic Bar Animation Speed\nDefault=1.0\n" + "How fast the bars slide in and out. 1.0 takes about half a second, 2.0 is twice as fast, 0.5 is twice as slow.", 0.1D, 20.0D);
+		dialogueBarColor = config.get(clientOptions, "dialogue_bar_color", "000000", "Cinematic Bar Color\nDefault=000000\n" + "Hex color (RRGGBB) of the cinematic bars. 000000 is black.");
+		dialogueHideHud = config.get(clientOptions, "dialogue_hide_hud", true, "Hide HUD During Dialogue\nDefault=true\n" + "If true, the hotbar, health, crosshair and chat are hidden while talking to an NPC for a more cinematic look.");
+		dialogueFaceNpc = config.get(clientOptions, "dialogue_face_npc", true, "Look At NPC During Dialogue\nDefault=true\n" + "If true, the camera smoothly turns to face the NPC you are talking to.");
+		dialogueTypewriterSpeed = config.get(clientOptions, "dialogue_typewriter_chars_per_second", 70, "Dialogue Text Speed\nDefault=70\n" + "How many characters per second the NPC's lines are revealed at. 0 shows each line instantly.", 0, 1000);
+
 		npcActionRange = config.get(generalOptions, "npc_action_range", npcActionRange, "Action Range\nDefault=" + npcActionRange + "\n" + "The range in blocks that an NPC can perform an action on something. The player has an action\n" + "range of 5. Only affects workers, no effect on the attack range of combat units nor medics.\n" + "Minimum value of 3 unless you want NPC's to bug-out and get stuck at random.").getInt();
 
 		vanillaEquipmentDropRate = config.get(generalOptions, "npc_vanilla_equipment_drop_rate", vanillaEquipmentDropRate, "Vanilla equipment drop rate for faction NPCs\nMakes Faction NPCs drop their items by the Vanilla Equipment Drop rate (8,5%)\nDefault=" + vanillaEquipmentDropRate + "\n" + "If set to false, the NPCs will ALWAYS drop ALL equipment they have (100%) rate").getBoolean();
@@ -125,6 +137,41 @@ public class AWNPCStatics extends ModConfiguration {
 		repackCreativeOnly = config.get(generalOptions, "npc_repack_creative_only", repackCreativeOnly, "Repack only available for Creative players?\nDefault=" + repackCreativeOnly + "\n" + "If true, the 'Repack' option for NPC's will be unavailable outside of Creative mode.").getBoolean();
 
 		persistOrdersOnDeath = config.get(generalOptions, "npc_death_keep_orders_items", persistOrdersOnDeath, "NPC's will keep orders items on death?\nDefault=" + persistOrdersOnDeath + "\n" + "If true, an NPC who dies and manages to notify a nearby town hall will keep their orders items on their body. So if/when a priest resurrects them, they will have the orders items on them still. If there is no Town Hall nearby to catch the death however, the will drop on the ground as normal.").getBoolean();
+	}
+
+	/* ********************************************DIALOGUE SCREEN HELPERS************************************************ */
+	public static float getDialogueBarHeightPercent() {
+		return (float) Math.max(0D, Math.min(50D, dialogueBarHeight.getDouble()));
+	}
+
+	public static float getDialogueBarSpeed() {
+		return (float) Math.max(0.1D, Math.min(20D, dialogueBarSpeed.getDouble()));
+	}
+
+	/** @return the configured bar color as 0xRRGGBB, falling back to black if the text is not valid hex. */
+	public static int getDialogueBarColor() {
+		String text = dialogueBarColor.getString().trim();
+		if (text.startsWith("#")) {
+			text = text.substring(1);
+		}
+		try {
+			return Integer.parseInt(text, 16) & 0xFFFFFF;
+		}
+		catch (NumberFormatException e) {
+			return 0;
+		}
+	}
+
+	public static boolean shouldHideHudDuringDialogue() {
+		return dialogueHideHud.getBoolean();
+	}
+
+	public static boolean shouldFaceNpcDuringDialogue() {
+		return dialogueFaceNpc.getBoolean();
+	}
+
+	public static int getDialogueTypewriterSpeed() {
+		return Math.max(0, dialogueTypewriterSpeed.getInt());
 	}
 
 	public int getPlayerDefaultStanding(String factionName) {

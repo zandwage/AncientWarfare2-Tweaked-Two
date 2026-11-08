@@ -38,6 +38,7 @@ import net.shadowmage.ancientwarfare.core.util.NBTHelper;
 import net.shadowmage.ancientwarfare.npc.ai.AIHelper;
 import net.shadowmage.ancientwarfare.npc.ai.faction.NpcAIFactionFleeSun;
 import net.shadowmage.ancientwarfare.npc.ai.faction.NpcAIFactionRestrictSun;
+import net.shadowmage.ancientwarfare.npc.dialogue.DialogueManager;
 import net.shadowmage.ancientwarfare.npc.registry.NPCDialogue;
 import net.shadowmage.ancientwarfare.npc.config.AWNPCStatics;
 import net.shadowmage.ancientwarfare.npc.entity.NpcBase;
@@ -74,6 +75,11 @@ public abstract class NpcFaction extends NpcBase {
 	protected String factionName;
 	private Map<String, Long> revengePlayers = new HashMap<>();
 	public double dialogueSeed;
+	// Server-side only: while a player is in the cinematic dialogue screen this NPC stands still and looks at them.
+	// The client keeps refreshing this while the screen is open; the expiry is only a safety net (disconnects, crashes).
+	private static final int DIALOGUE_TIMEOUT_TICKS = 60;
+	private int dialogueTalkerId = -1;
+	private long dialogueUntilTick = 0;
 
 	public NpcFaction(World world) {
 		super(world);
@@ -296,6 +302,9 @@ public abstract class NpcFaction extends NpcBase {
 	@Override
 	public void onEntityUpdate() {
 		super.onEntityUpdate();
+		if (!world.isRemote && dialogueTalkerId != -1) {
+			tickDialogue();
+		}
 		if (world.getWorldTime() % REVENGE_LIST_VALIDATION_TICKS == 0) {
 			Iterator<Map.Entry<String, Long>> it = revengePlayers.entrySet().iterator();
 			while (it.hasNext()) {
@@ -532,6 +541,41 @@ public abstract class NpcFaction extends NpcBase {
 		return width / 0.6f;
 	}
 
+	/**
+	 * Called (server side) when a player opens the dialogue screen or while it stays open.
+	 */
+	public void beginOrRefreshDialogue(EntityPlayer player) {
+		dialogueTalkerId = player.getEntityId();
+		dialogueUntilTick = world.getTotalWorldTime() + DIALOGUE_TIMEOUT_TICKS;
+	}
+
+	public void endDialogue(EntityPlayer player) {
+		if (dialogueTalkerId == player.getEntityId()) {
+			dialogueTalkerId = -1;
+		}
+	}
+
+	private boolean isInDialogue() {
+		return !world.isRemote && dialogueTalkerId != -1 && world.getTotalWorldTime() < dialogueUntilTick;
+	}
+
+	private void tickDialogue() {
+		Entity talker = world.getEntityByID(dialogueTalkerId);
+		if (talker == null || talker.isDead || world.getTotalWorldTime() >= dialogueUntilTick) {
+			dialogueTalkerId = -1;
+			return;
+		}
+		getNavigator().clearPath();
+		getLookHelper().setLookPositionWithEntity(talker, 30F, 30F);
+		getLookHelper().onUpdateLook();
+	}
+
+	// While talking, skip AI entirely so the NPC doesn't wander off mid-conversation.
+	@Override
+	protected boolean isMovementBlocked() {
+		return super.isMovementBlocked() || isInDialogue();
+	}
+
 	@Override
 	protected boolean processInteract(EntityPlayer player, EnumHand hand) {
 		// Allow creative mode players to still access GUIs for NPC setup.
@@ -548,8 +592,13 @@ public abstract class NpcFaction extends NpcBase {
 		boolean baton = playerIsHoldingItem && player.getHeldItem(hand).getItem() instanceof ItemCommandBaton;
 		if (AWCoreStatics.npcDialogue && !baton && isEntityAlive()) {
 			if (!player.world.isRemote) {
-				// Say something to the player who right-clicked, pass in the NPC object containing important data
-				NPCDialogue.speakToPlayer(player, this);
+				if (AWNPCStatics.dialogueScreen) {
+					// Open the cinematic, Skyrim-style dialogue screen on the player's client
+					DialogueManager.startDialogue(player, this);
+				} else {
+					// Old behaviour: say something to the player who right-clicked, pass in the NPC object containing important data
+					NPCDialogue.speakToPlayer(player, this);
+				}
 			}
 			return true;
 		}

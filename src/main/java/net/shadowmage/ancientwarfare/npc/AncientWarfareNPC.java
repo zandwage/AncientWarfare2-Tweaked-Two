@@ -28,6 +28,7 @@ import net.shadowmage.ancientwarfare.npc.compat.EpicSiegeCompat;
 import net.shadowmage.ancientwarfare.npc.compat.TwilightForestCompat;
 import net.shadowmage.ancientwarfare.npc.compat.ebwizardry.EBWizardryCompat;
 import net.shadowmage.ancientwarfare.npc.config.AWNPCStatics;
+import net.shadowmage.ancientwarfare.npc.dialogue.DialogueConfig;
 import net.shadowmage.ancientwarfare.npc.container.ContainerCombatOrder;
 import net.shadowmage.ancientwarfare.npc.container.ContainerNpcBard;
 import net.shadowmage.ancientwarfare.npc.container.ContainerNpcCreativeControls;
@@ -50,6 +51,8 @@ import net.shadowmage.ancientwarfare.npc.init.AWNPCItems;
 import net.shadowmage.ancientwarfare.npc.network.PacketExtendedReachAttack;
 import net.shadowmage.ancientwarfare.npc.network.PacketFactionUpdate;
 import net.shadowmage.ancientwarfare.npc.network.PacketNpcCommand;
+import net.shadowmage.ancientwarfare.npc.network.PacketNpcDialogue;
+import net.shadowmage.ancientwarfare.npc.network.PacketNpcDialogueStatus;
 import net.shadowmage.ancientwarfare.npc.network.PacketTeamMembershipUpdate;
 import net.shadowmage.ancientwarfare.npc.network.PacketTeamStandingUpdate;
 import net.shadowmage.ancientwarfare.npc.network.PacketTeamStandingsUpdate;
@@ -119,6 +122,8 @@ public class AncientWarfareNPC {
 		PacketBase.registerPacketType(NetworkHandler.PACKET_NPC_COMMAND, PacketNpcCommand.class, PacketNpcCommand::new);
 		PacketBase.registerPacketType(NetworkHandler.PACKET_FACTION_UPDATE, PacketFactionUpdate.class, PacketFactionUpdate::new);
 		PacketBase.registerPacketType(NetworkHandler.PACKET_EXTENDED_REACH_ATTACK, PacketExtendedReachAttack.class, PacketExtendedReachAttack::new);
+		PacketBase.registerPacketType(NetworkHandler.PACKET_NPC_DIALOGUE, PacketNpcDialogue.class, PacketNpcDialogue::new);
+		PacketBase.registerPacketType(NetworkHandler.PACKET_NPC_DIALOGUE_STATUS, PacketNpcDialogueStatus.class, PacketNpcDialogueStatus::new);
 		PacketBase.registerPacketType(NetworkHandler.PACKET_STRUCTURE_ENTRY, PacketStructureEntry.class, PacketStructureEntry::new);
 		PacketBase.registerPacketType(NetworkHandler.PACKET_TEAM_MEMBERSHIP_UPDATE, PacketTeamMembershipUpdate.class, PacketTeamMembershipUpdate::new);
 		PacketBase.registerPacketType(NetworkHandler.PACKET_TEAM_STANDINGS_UPDATE, PacketTeamStandingsUpdate.class, PacketTeamStandingsUpdate::new);
@@ -164,6 +169,9 @@ public class AncientWarfareNPC {
 		evt.registerServerCommand(new CommandFaction());
 		evt.registerServerCommand(new CommandTeams());
 		evt.registerServerCommand(new CommandDebugAI());
+
+		// Re-read the dialogue options file, so edits take effect by simply re-entering the world.
+		DialogueConfig.load();
 	}
 
 	@SubscribeEvent

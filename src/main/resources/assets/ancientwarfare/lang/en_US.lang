@@ -1914,3 +1914,6 @@ gui.ancientwarfarenpc.faction_name.xoltec=Xoltec
 gui.ancientwarfarenpc.faction_name.zamurai=Zamurai
 gui.ancientwarfarenpc.faction_name.zimba=Zimba
 
+
+# Cinematic NPC dialogue screen
+gui.ancientwarfarenpc.dialogue.hint=Scroll / Up / Down: Choose    Enter / Click: Select    Esc: Leave

@@ -23,6 +23,7 @@ import net.shadowmage.ancientwarfare.core.proxy.IClientRegister;
 import net.shadowmage.ancientwarfare.core.util.TextureImageBased;
 import net.shadowmage.ancientwarfare.npc.AncientWarfareNPC;
 import net.shadowmage.ancientwarfare.npc.client.NPCItemColors;
+import net.shadowmage.ancientwarfare.npc.client.dialogue.DialogueHudHandler;
 import net.shadowmage.ancientwarfare.npc.config.AWNPCStatics;
 import net.shadowmage.ancientwarfare.npc.entity.NoFriendlyFirePotion;
 import net.shadowmage.ancientwarfare.npc.entity.NpcBase;
@@ -116,6 +117,7 @@ public class NpcClientProxy extends NpcCommonProxy {
 		MinecraftForge.EVENT_BUS.register(RenderWorkLines.INSTANCE);
 		MinecraftForge.EVENT_BUS.register(RenderCommandOverlay.INSTANCE);
 		MinecraftForge.EVENT_BUS.register(new IExtendedReachWeapon.MouseClickHandler());
+		MinecraftForge.EVENT_BUS.register(new DialogueHudHandler());
 
 		registerClientOptions();
 	}
@@ -179,6 +181,12 @@ public class NpcClientProxy extends NpcCommonProxy {
 			list.add(new ConfigElement(AWNPCStatics.renderHostileHealth));
 			list.add(new ConfigElement(AWNPCStatics.renderTeamColors));
 			list.add(new ConfigElement(AWNPCStatics.renderWorkPoints));
+			list.add(new ConfigElement(AWNPCStatics.dialogueBarHeight));
+			list.add(new ConfigElement(AWNPCStatics.dialogueBarSpeed));
+			list.add(new ConfigElement(AWNPCStatics.dialogueBarColor));
+			list.add(new ConfigElement(AWNPCStatics.dialogueHideHud));
+			list.add(new ConfigElement(AWNPCStatics.dialogueFaceNpc));
+			list.add(new ConfigElement(AWNPCStatics.dialogueTypewriterSpeed));
 			return list;
 		}
 	}

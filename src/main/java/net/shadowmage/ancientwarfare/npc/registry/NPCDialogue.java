@@ -7,6 +7,7 @@ package net.shadowmage.ancientwarfare.npc.registry;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import com.google.gson.annotations.SerializedName;
 import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.JsonUtils;
@@ -59,6 +60,11 @@ public class NPCDialogue {
     // Sends a chat message to the given player.
     public static void speakToPlayer(EntityPlayer player, String message) {
         player.sendMessage(new TextComponentString(message));
+    }
+
+    // Public entry point used by the dialogue screen to get an NPC's opening line.
+    public static String getGreeting(String factionName, boolean isHostile, double seed) {
+        return getRandomDialogue(factionName, isHostile, seed);
     }
 
     // Searches through all possible dialogue options and picks a valid one.
@@ -151,6 +157,7 @@ public class NPCDialogue {
             case "vyncan":
                 factionJSON = dialogueData.vyncan;
                 break;
+            case "lizardman": // the real faction name; "lizardmen" kept for safety
             case "lizardmen":
                 factionJSON = dialogueData.lizardmen;
                 break;
@@ -244,6 +251,7 @@ public class NPCDialogue {
         FactionJSON guild;
         FactionJSON sealsker;
         FactionJSON vyncan;
+        @SerializedName("lizardman")
         FactionJSON lizardmen;
         FactionJSON coven;
         FactionJSON rakshasa;
